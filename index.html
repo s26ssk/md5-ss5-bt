@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Product List</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+</head>
+<body>
+<div class="container">
+    <div class="d-flex justify-content-center">
+		<div class="col-lg-6 mt-5">
+            <h1 class="text-center mb-3">Form Category</h1>
+			<form id="categoryForm">
+                <div class="form-group">
+                    <label for="categoryName">Category Name:</label>
+                    <input type="text" class="form-control" id="categoryName" required>
+                </div>
+                <div class="form-group">
+                    <label for="status">Status:</label>
+                    <select class="form-control" id="status" required>
+                        <option value="true" selected>Active</option>
+                        <option value="false">Inactive</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="addCategory()">Add Category</button>
+            </form>
+        </div>
+        <div class="col-lg-12 mt-5 ">
+            <h1 class="text-center mb-3">Category List</h1>
+			<table class="table mt-3">
+                <thead class="thead-dark">
+                <tr>
+                    <th>Category Id</th>
+                    <th>Category Name</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+				<tbody id="categoryTable">
+				</tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<!-- <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script> -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+<script>
+    $(document).ready(function () {
+        loadCategories();
+        $('#categoryForm').submit(function (e) {
+            e.preventDefault();
+        });
+    });
+
+    function loadCategories() {
+        $.ajax({
+            url: 'http://localhost:8080/category',
+            method: 'GET',
+            success: function (categories) {
+                displayCategories(categories);
+            },
+            error: function (error) {
+                console.log(error);
+            }
+        });
+    }
+
+    function displayCategories(categories) {
+        const categoryTable = $('#categoryTable');
+        categoryTable.empty();
+
+        categories.forEach(function (category) {
+            categoryTable.append(`
+                <tr>
+                    <td>${category.id}</td>
+                    <td>${category.categoryName}</td>
+                    <td>${category.categoryStatus ? 'Active' : 'Inactive'}</td>
+                    <td>
+                        <a id="edit-btn" class="btn btn-warning" onclick="editCategory(${category.id})">Edit</a>
+                        <a class="btn btn-danger" onclick="deleteCategory(${category.id})">Delete</a>
+                    </td>
+                </tr>
+            `);
+        });
+    }
+
+    function addCategory() {
+        const categoryName = $('#categoryName').val();
+        const status = $('#status').val() === 'true';
+        console.log(categoryName);
+        console.log(status);
+        const isUpdate = $('button[type="button"]').attr("data")
+
+        if(isUpdate !== "update") {
+            $.ajax({
+                url: 'http://localhost:8080/category',
+                method: 'POST',
+                contentType: 'application/json',
+                dataType: 'JSON',
+                data: JSON.stringify({ categoryName: categoryName, categoryStatus: status }),
+                success: function () {
+                    loadCategories();
+                    $('#categoryName').val('');
+                },
+                error: function (error) {
+                    console.log(error);
+                }
+            });
+        }
+    }
+    
+    function editCategory(id) {
+        $.ajax({
+            url: `http://localhost:8080/category/${id}`,
+            method: 'GET', 
+            success: function (category) {
+                $('#categoryName').val(category.categoryName);
+                $('#status').val(category.categoryStatus.toString());
+
+                $('button[type="button"]').text('Update Category').attr("data", "update").off('click').on('click', () => {updateCategory(id)}
+                );
+            },
+            error: function (error) {
+                console.log(error);
+            }
+        });
+    }
+
+    function updateCategory(id) {
+        console.log(id);
+        const categoryName = $('#categoryName').val();
+        const status = $('#status').val() === 'true';
+        const isUpdate = $('button[type="button"]').attr("data")
+
+        if(isUpdate === "update") {
+        $.ajax({
+            url: `http://localhost:8080/category/${id}`,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({ categoryName: categoryName, categoryStatus: status }),
+            success: function () {
+                loadCategories();
+                $('#categoryName').val('');
+                $('button[type="button"]').text('Add Category').off('click', updateCategory);
+            },
+            error: function (error) {
+                console.log(error);
+            }
+        });
+    }
+
+        $('button[type="button"]').removeAttr("data")
+    }
+
+    function deleteCategory(id) {
+        $.ajax({
+            url: `http://localhost:8080/category/${id}`,
+            method: 'DELETE',
+            success: function () {
+                loadCategories();
+            },
+            error: function (error) {
+                console.log(error);
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
